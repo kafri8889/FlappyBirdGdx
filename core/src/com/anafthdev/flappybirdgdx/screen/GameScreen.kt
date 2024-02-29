@@ -146,7 +146,7 @@ class GameScreen(private val game: FlappyBirdGdx): Screen {
 
             batch.end()
 
-            box2dDebugRenderer.render(world, batch.projectionMatrix)
+//            box2dDebugRenderer.render(world, batch.projectionMatrix)
         }
 
         if (Gdx.input.justTouched() && isGameStarted) {
