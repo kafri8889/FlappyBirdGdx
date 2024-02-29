@@ -9,19 +9,15 @@ import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.GlyphLayout
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
-import com.badlogic.gdx.math.Rectangle
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.physics.box2d.Body
 import com.badlogic.gdx.physics.box2d.BodyDef
 import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer
-import com.badlogic.gdx.physics.box2d.Contact
-import com.badlogic.gdx.physics.box2d.ContactImpulse
-import com.badlogic.gdx.physics.box2d.ContactListener
-import com.badlogic.gdx.physics.box2d.Manifold
 import com.badlogic.gdx.physics.box2d.PolygonShape
 import com.badlogic.gdx.physics.box2d.World
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Timer
+import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
 
@@ -29,7 +25,7 @@ class GameScreen(private val game: FlappyBirdGdx): Screen {
 
     private val MIN_TRUNK_OFFSET = -35 // -35px from center (center to up)
     private val MAX_TRUNK_OFFSET = 35 // 35px from center (center to bottom)
-    private val TRUNK_INTERVAL = 1.6f // Show trunk every n second
+    private val TRUNK_INTERVAL = 2f // Show trunk every n second
     private val BACKGROUND_MOVE_SPEED_LAYER_4 = 60 // 60 px/sec
     private val BACKGROUND_MOVE_SPEED_LAYER_3 = 40 // 40 px/sec
     private val BACKGROUND_MOVE_SPEED_LAYER_2 = 20 // 20 px/sec
@@ -77,13 +73,14 @@ class GameScreen(private val game: FlappyBirdGdx): Screen {
             when {
                 fixtureA.userData == "bird" && fixtureB.userData == "trunk" -> {
                     gameOver()
+                    true
                 }
-                fixtureA.userData == "bird" && fixtureB.userData == "scoreBox" -> {
+                fixtureA.userData == "bird" && fixtureB.userData == "scoreHitBox" -> {
                     score++
+                    false
                 }
+                else -> true
             }
-
-            true
         }
     }
 
@@ -101,9 +98,8 @@ class GameScreen(private val game: FlappyBirdGdx): Screen {
         }
     }
 
-    private var timeAccumulator = 0f
     private var accumulator = 0f
-    private var highestScore = 0
+    private var highScore = 0
     private var score = 0
 
     /**
@@ -140,15 +136,13 @@ class GameScreen(private val game: FlappyBirdGdx): Screen {
                 )
             }
 
-            if (isGameStarted) {
-                // Draw score text
-                font.draw(
-                    batch,
-                    score.toString(),
-                    Constant.SCREEN_RESOLUTION_WIDTH / 2,
-                    Constant.SCREEN_RESOLUTION_HEIGHT * 0.92f
-                )
-            }
+            // Draw score text
+            font.draw(
+                batch,
+                if (isGameStarted) score.toString() else highScore.toString(),
+                Constant.SCREEN_RESOLUTION_WIDTH / 2,
+                Constant.SCREEN_RESOLUTION_HEIGHT * 0.92f
+            )
 
             batch.end()
 
@@ -175,7 +169,7 @@ class GameScreen(private val game: FlappyBirdGdx): Screen {
             val trunk = iter.next()
             trunk.moveX(trunk.x - 20 * delta)
 
-            if (trunk.x + trunk.size.width < 0) {
+            if (trunk.x + trunk.trunkSize.width < 0) {
                 trunk.destroy()
                 iter.remove()
             }
@@ -322,6 +316,10 @@ class GameScreen(private val game: FlappyBirdGdx): Screen {
 
     private fun gameOver() {
         // Lose
+
+        highScore = max(highScore, score)
+        score = 0
+
         timer.clear()
         // jump a bit
         birdBody.setLinearVelocity(0f, 20f)
